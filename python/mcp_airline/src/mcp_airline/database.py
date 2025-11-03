@@ -155,6 +155,24 @@ class AirlineDatabase:
         if date not in flight['dates']:
             raise ValueError(f"Flight {flight_number} not found on date {date}")
         return flight['dates'][date]
+    
+    def get_compensated_ids(self) -> list[str]:
+        """
+        Get list of reservation IDs that have been compensated.
+
+        Returns:
+            List of compensated reservation IDs
+        """
+        return self._data.get("compensated_reservation_ids", [])
+    
+    def add_compensated_id(self, reservation_id: str) -> None:
+        """
+        Add a reservation ID to the list of compensated reservations.
+
+        Args:
+            reservation_id: The reservation ID to add
+        """
+        self._data["compensated_reservation_ids"].append(reservation_id)
 
     def get_new_reservation_id(self) -> str:
         """

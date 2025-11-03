@@ -14,8 +14,17 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
+import time
 from .tool_manager import ToolManager
 from .config import TAU2_DOMAIN_DATA_PATH, agent_llm
+from guardrails import Guard, OnFailAction
+from guardrails.hub import ToxicLanguage
+import warnings
+
+warnings.filterwarnings("ignore", message="Could not obtain an event loop")
+input_guard = Guard().use(
+    ToxicLanguage(threshold=0.5, validation_method="sentence", on_fail=OnFailAction.EXCEPTION)
+)
 
 
 @dataclass
@@ -59,8 +68,10 @@ class ToolCallingAgent:
             tool_manager: Manager for MCP tools
             max_steps: Maximum reasoning steps before giving up
         """
+
         self.tool_manager = tool_manager
         self.max_steps = max_steps
+        self.pending_action = None
         self.messages: List[Dict[str, Any]] = []
         self.logger = logging.getLogger("agent.messages")
         for handler in list(self.logger.handlers):
@@ -92,8 +103,17 @@ class ToolCallingAgent:
         Raises:
             Exception: If max steps reached without completing the task
         """
+        start_time = time.time()
+        try:
+            input_guard.validate(task)
+            guard_latency = time.time() - start_time
+            print(f"Guardrail check latency: {guard_latency:.4f} seconds")
+        except Exception as e:
+            print(f"Input validation failed: {e}")
+            return "Your request has been blocked by the security filter."
+        
         self._add_to_context({"role": "user", "content": task})
-
+            
         # Agent loop
         for step in range(1, self.max_steps + 1):
             response = self._reason()
@@ -185,10 +205,32 @@ class ToolCallingAgent:
         tool_args_str = tool_call["function"]["arguments"]
 
         try:
-            # Parse arguments (they come as a JSON string)
+            # Parse arguments from JSON string
             tool_args = json.loads(tool_args_str) if isinstance(tool_args_str, str) else tool_args_str
+            if tool_name == "book_reservation" or tool_name == "update_reservation_baggages" or tool_name == "update_reservation_flights":
+            # Prepare readable info for confirmation
+                confirmation_msg = (
+                    f"This action '{tool_name}' may involve payment or additional cost.\n"
+                    "Please confirm: type 'yes' to proceed, or 'no' to cancel."
+                )
+                confirmation = input(confirmation_msg).strip().lower()
+                if confirmation == "yes":
+                    # Execute the tool
+                    result = self.tool_manager.execute_tool(tool_name, tool_args)
+                    return {
+                        "role": "tool",
+                        "content": result,
+                        "tool_call_id": tool_call["id"]
+                    }
+                else:
+                    return {
+                        "role": "tool",
+                        "content": f"Action '{tool_name}' has been cancelled by the user.",
+                        "tool_call_id": tool_call["id"]
+                    }                  
+                
 
-            # Execute the tool
+                # Execute the tool
             result = self.tool_manager.execute_tool(tool_name, tool_args)
 
             return {

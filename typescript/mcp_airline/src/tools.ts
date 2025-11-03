@@ -19,6 +19,8 @@ import {
   Certificate,
 } from "./types.ts";
 
+import wiki from 'wikijs';
+
 export interface ToolDefinition {
   name: string;
   description: string;
@@ -838,6 +840,74 @@ export const TOOLS: ToolDefinition[] = [
       return db.getFlightInstance(flight_number, date).status;
     }
   },
+//   {
+//   name: "current_time",
+//   description: "Get the current date and time in UTC. Use this to resolve relative time queries like 'today', 'tomorrow', or 'in 5 hours'.",
+//   inputSchema: {
+//     type: "object",
+//     properties: {},
+//     required: [],
+//   },
+//   // Handler is async for consistency, although Date.now() is sync
+//   handler: async (args: any, db: AirlineDatabase) => {
+//     try {
+//       const now = new Date().toISOString();
+//       return {
+//         tool_name: "current_time",
+//         current_utc_time: now,
+//       };
+//     } catch (error: any) {
+//       return {
+//         error: `Failed to get current time: ${error.message}`
+//       };
+//     }
+//   },
+// },
+
+// {
+//   name: "airport_info",
+//   description: "Retrieves basic information about a given airport from Wikipedia (e.g., city, country, IATA code, description).",
+//   inputSchema: {
+//     type: "object",
+//     properties: {
+//       airport_code: {
+//         type: "string",
+//         description: "The airport IATA code (e.g., 'JFK')",
+//       },
+//       airport_name: {
+//         type: "string",
+//         description: "The full airport name (e.g., 'John F. Kennedy International Airport')",
+//       },
+//     },
+//   },
+//   handler: async (args: { airport_code?: string; airport_name?: string }, db: AirlineDatabase) => {
+//     const query = args.airport_name || args.airport_code;
+    
+//     if (!query) {
+//       return { error: "Either airport_code or airport_name must be provided." };
+//     }
+
+//     try {
+//       const page: any = await wiki().search(query);
+//       const summary = await page.summary();
+
+//       return {
+//         name: page.raw.title,
+//         url: page.raw.fullurl,
+//         summary: summary
+//       };
+//     } catch (error: any) {
+//       if (error.message?.includes('disambiguation')) {
+//         return { 
+//           error: `Disambiguation page for '${query}'. Please be more specific.`
+//         };
+//       }
+//       return { 
+//         error: `Airport '${query}' not found on Wikipedia.`
+//       };
+//     }
+//   }
+// }
 ];
 
 // Helper functions to work with tools
