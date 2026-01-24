@@ -28,6 +28,27 @@ Set up you API key (e.g., [Google API key](https://ai.google.dev) for Gemini mod
 5. Optionally, run the provided examples and evaluates success from the tau2 benchmark. For this, the user input is simulated with another LLM.
 
 
+## RAG Pipeline & Policy Eval
+
+1. **Ingest policy into Chroma** (run once; requires `airline_policy.pdf` and `GEMINI_API_KEY`):
+   ```bash
+   python ingest_policy.py
+   ```
+   This creates `policy_db/` with chunked, embedded policy.
+
+2. **Run policy eval** (naive vs RAG; computes hallucination rate and reduction):
+   ```bash
+   agent-eval-policy                    # from python/agent after pip install -e .
+   agent-eval-policy --limit 5          # quick check
+   agent-eval-policy --out results.json # save results
+   ```
+
+3. **Use RAG in the agent** (policy QA via `query_policy` tool instead of full policy in prompt):
+   ```bash
+   agent-cli --rag http://localhost:3000/mcp
+   ```
+   Ensure the MCP airline server is running and ingest has been run.
+
 ## Development Notes
 
 - All MCP servers share data from the `data/` directory

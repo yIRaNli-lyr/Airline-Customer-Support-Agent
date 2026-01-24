@@ -16,12 +16,16 @@ dependencies = [
     "litellm>=1.0.0",
     "mcp>=1.0.0",
     "flask>=3.0.0",
+    "langchain-google-genai>=2.0.0",
+    "langchain-chroma>=0.1.0",
+    "chromadb>=0.4.0",
 ]
 
 [project.scripts]
 agent-cli = "agent.cli:main"
 agent-webui = "agent.webui:main"
 agent-benchmark = "agent.benchmark:main"
+agent-eval-policy = "agent.eval_policy:main"
 
 [project.optional-dependencies]
 dev = [

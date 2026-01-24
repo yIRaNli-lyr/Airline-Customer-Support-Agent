@@ -4,35 +4,43 @@ CLI Interface - Interactive command-line interface for the agent.
 
 Usage:
     agent-cli [MCP_SERVER_URL]...
+    agent-cli --rag [MCP_SERVER_URL]...
 
 Examples:
-    agent-cli
     agent-cli http://localhost:3000/mcp
-    agent-cli http://localhost:3000/mcp http://localhost:3001/mcp
+    agent-cli --rag http://localhost:3000/mcp
 """
 
+import argparse
 import sys
+
 from .agent import ToolCallingAgent
+from .rag import register_query_policy_tool
 from .tool_manager import ToolManager
 
 
 def main():
     """Main CLI entrypoint"""
-    mcp_servers = sys.argv[1:]
+    ap = argparse.ArgumentParser(description="Agent CLI")
+    ap.add_argument("--rag", action="store_true", help="Use RAG for policy (query_policy); require ingest")
+    ap.add_argument("mcp_servers", nargs="*", help="MCP server URL(s), e.g. http://localhost:3000/mcp")
+    args = ap.parse_args()
+    mcp_servers = args.mcp_servers
 
-    # Connect to MCP servers
     tool_manager = ToolManager.from_servers(mcp_servers)
 
-    if not mcp_servers:
-        print('Usage: agent-cli [MCP_SERVER_URL]...')
-        print('Example: agent-cli http://localhost:3000/mcp\n')
+    if args.rag:
+        register_query_policy_tool(tool_manager)
+        print("   📚 RAG enabled: query_policy registered\n")
 
-    # Create agent
-    agent = ToolCallingAgent(tool_manager)
+    if not mcp_servers and not args.rag:
+        print("Usage: agent-cli [--rag] [MCP_SERVER_URL]...")
+        print("Example: agent-cli --rag http://localhost:3000/mcp\n")
 
-    # Interactive loop
+    agent = ToolCallingAgent(tool_manager, use_rag=args.rag)
+
     print("\n" + "=" * 60)
-    print("🤖 Agent ready! Type 'quit' or 'exit' to stop.")
+    print("🤖 Agent ready! Type 'quit' or 'exit' to stop." + (" [RAG]" if args.rag else ""))
     print("=" * 60)
 
     try:

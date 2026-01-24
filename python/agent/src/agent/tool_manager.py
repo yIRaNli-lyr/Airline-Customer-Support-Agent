@@ -6,9 +6,11 @@ This module:
 - Aggregates tools from all servers
 - Routes tool calls to the appropriate server
 - Tracks which server provides which tool
+- Supports local (non-MCP) tools, e.g. query_policy for RAG
 """
 
-from typing import Dict, List, Any
+from typing import Any, Callable, Dict, List
+
 from .mcp_client import MCPServerConnection, MCPServerStatus, MCPTool
 
 
@@ -65,6 +67,8 @@ class ToolManager:
         self.mcp_servers: List[MCPServerConnection] = []
         self.tools: List[Dict[str, Any]] = []
         self.tool_to_server_map: Dict[str, MCPServerConnection] = {}
+        self.local_tools: List[Dict[str, Any]] = []
+        self.local_tool_fns: Dict[str, Callable[..., str]] = {}
 
     def add_mcp_server(self, config: str) -> None:
         """
@@ -96,8 +100,8 @@ class ToolManager:
                 if tool_name == "reset":
                     continue
 
-                # Check for duplicate tool names
-                if tool_name in self.tool_to_server_map:
+                # Check for duplicate tool names (MCP or local)
+                if tool_name in self.tool_to_server_map or tool_name in self.local_tool_fns:
                     print(f"   ⚠️  Tool '{tool_name}' already exists, skipping")
                 else:
                     self.tools.append(tool_def)
@@ -113,14 +117,42 @@ class ToolManager:
             print(f"   ❌ Failed to connect to {config}: {error_msg}\n")
             raise
 
+    def add_local_tool(
+        self,
+        name: str,
+        fn: Callable[..., str],
+        description: str,
+        parameters: Dict[str, Any],
+    ) -> None:
+        """
+        Register a local (non-MCP) tool.
+
+        Args:
+            name: Tool name
+            fn: Called with keyword args matching parameters; returns string.
+            description: Tool description for the LLM
+            parameters: JSON Schema for parameters, e.g. {"type": "object", "properties": {...}, "required": [...]}
+        """
+        if name in self.tool_to_server_map or name in self.local_tool_fns:
+            raise ValueError(f"Tool '{name}' already registered")
+        self.local_tools.append({
+            "type": "function",
+            "function": {
+                "name": name,
+                "description": description,
+                "parameters": parameters,
+            },
+        })
+        self.local_tool_fns[name] = fn
+
     def get_tools(self) -> List[Dict[str, Any]]:
         """
-        Get all available tools in OpenAI format.
+        Get all available tools in OpenAI format (MCP + local).
 
         Returns:
             List of tool definitions
         """
-        return self.tools
+        return self.tools + self.local_tools
 
     def execute_tool(self, tool_name: str, input_data: Dict[str, Any]) -> str:
         """
@@ -136,8 +168,14 @@ class ToolManager:
         Raises:
             Exception: If tool execution fails
         """
-        mcp_server = self.tool_to_server_map.get(tool_name)
+        local_fn = self.local_tool_fns.get(tool_name)
+        if local_fn is not None:
+            try:
+                return local_fn(**input_data)
+            except Exception as error:
+                raise Exception(f"Tool execution failed: {str(error)}") from error
 
+        mcp_server = self.tool_to_server_map.get(tool_name)
         if mcp_server:
             try:
                 result = mcp_server.call_tool(tool_name, input_data)
@@ -145,8 +183,7 @@ class ToolManager:
             except Exception as error:
                 error_msg = str(error)
                 raise Exception(f"Tool execution failed: {error_msg}")
-        else:
-            return "Invalid tool call"
+        return "Invalid tool call"
 
     def get_server_status(self) -> List[MCPServerStatus]:
         """

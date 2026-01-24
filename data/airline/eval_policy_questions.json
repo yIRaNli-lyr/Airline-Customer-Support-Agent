@@ -1,0 +1,22 @@
+[
+  {"id": "1", "question": "What are the checked bag allowances for a regular member flying basic economy?"},
+  {"id": "2", "question": "Can I cancel my reservation if I booked more than 24 hours ago and have no insurance?"},
+  {"id": "3", "question": "How much does travel insurance cost per passenger?"},
+  {"id": "4", "question": "Can I modify a basic economy reservation to change flights?"},
+  {"id": "5", "question": "What payment methods can I use when booking? How many of each?"},
+  {"id": "6", "question": "When can the agent offer a certificate for delayed flights? How much?"},
+  {"id": "7", "question": "How many free checked bags does a gold member get for economy?"},
+  {"id": "8", "question": "If I cancel, when will the refund reach my original payment methods?"},
+  {"id": "9", "question": "Can I add travel insurance after I have already booked?"},
+  {"id": "10", "question": "Can I remove checked bags from my reservation after booking?"},
+  {"id": "11", "question": "What are the cancellation conditions? List all cases when cancellation is allowed."},
+  {"id": "12", "question": "Can the agent offer compensation to a regular member with no insurance on economy?"},
+  {"id": "13", "question": "How much does each extra baggage cost?"},
+  {"id": "14", "question": "Can I change cabin class if one of my flights has already flown?"},
+  {"id": "15", "question": "What is the maximum number of passengers per reservation?"},
+  {"id": "16", "question": "When compensating for cancelled flights, how is the certificate amount determined?"},
+  {"id": "17", "question": "Can I use a travel certificate to pay for a reservation update or only for new bookings?"},
+  {"id": "18", "question": "Do I need to provide a payment method that is already in my profile when changing flights?"},
+  {"id": "19", "question": "Can I change the number of passengers on my reservation?"},
+  {"id": "20", "question": "What cabin classes exist, and is basic economy the same as economy?"}
+]

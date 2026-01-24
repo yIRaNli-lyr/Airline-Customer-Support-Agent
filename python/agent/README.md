@@ -80,6 +80,22 @@ agent-benchmark http://localhost:3000/mcp
 TASK_FILTER="15" agent-benchmark http://localhost:3000/mcp
 ```
 
+#### RAG Mode (policy via `query_policy`)
+
+Requires running `python ingest_policy.py` from project root first.
+
+```bash
+agent-cli --rag http://localhost:3000/mcp
+```
+
+#### Policy Eval (naive vs RAG, hallucination reduction)
+
+```bash
+agent-eval-policy                  # full eval
+agent-eval-policy --limit 5        # quick run
+agent-eval-policy --out res.json   # write results
+```
+
 ## Architecture
 
 ```

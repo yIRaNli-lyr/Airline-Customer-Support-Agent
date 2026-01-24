@@ -59,18 +59,20 @@ class ToolCallingAgent:
     def __init__(
         self,
         tool_manager: ToolManager,
-        max_steps: int = 5
+        max_steps: int = 5,
+        use_rag: bool = False,
     ):
         """
         Initialize the agent.
 
         Args:
-            tool_manager: Manager for MCP tools
+            tool_manager: Manager for MCP tools (and optional local tools like query_policy)
             max_steps: Maximum reasoning steps before giving up
+            use_rag: If True, use RAG prompt and query_policy for policy Qs; no full policy in prompt
         """
-
         self.tool_manager = tool_manager
         self.max_steps = max_steps
+        self.use_rag = use_rag
         self.pending_action = None
         self.messages: List[Dict[str, Any]] = []
         self.logger = logging.getLogger("agent.messages")
@@ -205,38 +207,25 @@ class ToolCallingAgent:
         tool_args_str = tool_call["function"]["arguments"]
 
         try:
-            # Parse arguments from JSON string
             tool_args = json.loads(tool_args_str) if isinstance(tool_args_str, str) else tool_args_str
-            if tool_name == "book_reservation" or tool_name == "update_reservation_baggages" or tool_name == "update_reservation_flights":
-            # Prepare readable info for confirmation
+            confirm_tools = ("book_reservation", "update_reservation_baggages", "update_reservation_flights")
+            if tool_name in confirm_tools:
                 confirmation_msg = (
                     f"This action '{tool_name}' may involve payment or additional cost.\n"
                     "Please confirm: type 'yes' to proceed, or 'no' to cancel."
                 )
                 confirmation = input(confirmation_msg).strip().lower()
-                if confirmation == "yes":
-                    # Execute the tool
-                    result = self.tool_manager.execute_tool(tool_name, tool_args)
-                    return {
-                        "role": "tool",
-                        "content": result,
-                        "tool_call_id": tool_call["id"]
-                    }
-                else:
+                if confirmation != "yes":
                     return {
                         "role": "tool",
                         "content": f"Action '{tool_name}' has been cancelled by the user.",
-                        "tool_call_id": tool_call["id"]
-                    }                  
-                
-
-                # Execute the tool
+                        "tool_call_id": tool_call["id"],
+                    }
             result = self.tool_manager.execute_tool(tool_name, tool_args)
-
             return {
                 "role": "tool",
                 "content": result,
-                "tool_call_id": tool_call["id"]
+                "tool_call_id": tool_call["id"],
             }
 
         except Exception as error:
@@ -277,24 +266,25 @@ class ToolCallingAgent:
 
     def _create_system_prompt(self) -> str:
         """
-        Create the system prompt with instructions and policy.
+        Create the system prompt with instructions and policy (or RAG instructions).
 
         Returns:
             System prompt string
         """
-        # Load policy from file
-        policy_file = Path(__file__).parent / TAU2_DOMAIN_DATA_PATH / "policy.md"
+        base = Path(__file__).parent
+        if self.use_rag:
+            path = base / "prompts" / "system_prompt_rag.txt"
+            return path.read_text(encoding="utf-8")
+        policy_file = base / TAU2_DOMAIN_DATA_PATH / "policy.md"
         try:
-            with open(policy_file, "r") as f:
+            with open(policy_file, "r", encoding="utf-8") as f:
                 policy = f.read()
         except FileNotFoundError as exc:
             raise FileNotFoundError(
                 f"Policy file not found at {policy_file}. "
                 "Please ensure the policy is available before running the agent."
             ) from exc
-
-        # Load system prompt template
-        template_path = Path(__file__).parent / "prompts" / "system_prompt.txt"
+        template_path = base / "prompts" / "system_prompt.txt"
         try:
             template = template_path.read_text(encoding="utf-8")
         except FileNotFoundError as exc:
@@ -302,5 +292,4 @@ class ToolCallingAgent:
                 f"System prompt template not found at {template_path}. "
                 "Please ensure the template file is available before running the agent."
             ) from exc
-
         return template.replace("$POLICY", policy)
