@@ -1,57 +1,41 @@
-# Agent with MCP Servers
+# Airline Customer Support Agent
 
-This repository contains a very simple tool-calling agent with MCP support (Model Context Protocol)
-to act as a airline customer service agent.
+这个仓库是一个航空客服智能体项目。
+项目支持 MCP 工具调用。
+项目包含 Python 和 TypeScript 两套实现。
 
-This project is based on the data and implementation of the [tau2-bench](https://github.com/sierra-research/tau2-bench) benchmark.
+## 目录说明
 
-It contains both a TypeScript and a Python implementation. You can work with either.
+- `python/agent/` 智能体主程序，含 CLI 和 Web UI
+- `python/mcp_airline/` 航空领域 MCP 服务
+- `data/` 航空数据和策略数据
 
-## Prerequisites
+## 环境准备
 
-Any model with modern OpenAI-compatible function calling abilities can be used. LiteLLM currently supports 972 of these models (see `python/agent/supported_models.py`). You are welcome to use any models; we have tested the assignment with Gemini models that provide free, rate-limited access. You can set the used model in the `config.ts` or `config.py` file. Rate limits can be configured in the same file.
+1. 准备 Python 3.11 或更高版本
+2. 安装依赖
+3. 配置模型 API Key
 
-Set up you API key (e.g., [Google API key](https://ai.google.dev) for Gemini model) as environment variable or in .env file.
+示例命令:
 
-## Project Structure
+```bash
+pip install -r requirements.txt
+```
 
-- `python/agent/` - Tool-calling agent with CLI and web UI and a benchmark implementation
-- `python/mcp_airline/` - MCP server for airline domain (flights, reservations, user management), which also implements a web server to edit user profile data
-- `data/` - Domain data (airline database, policies, tasks)
+## 快速开始
 
-## Quick Start
+1. 启动 MCP 航空服务
+2. 启动智能体 CLI 或 Web UI
+3. 按需开启 RAG 模式
 
-1. Setup Environment: Create a `.env` or environment variable with your API key.
-2. Start the MCP Airline Servers: The MCP servers are all implemented using the streaming http protocol, so when launched they are reachable over a URL in the format `http://localhost:[port]/mcp`. You can start multiple servers on different ports.
-3. The MCP Inspector can be used to check that the server is running correctly. Run `npx @modelcontextprotocol/inspector http://localhost:3000/mcp`
-4. Start the agent with the CLI or Web UI, passing the address of the MCP server as an argument.
-5. Optionally, run the provided examples and evaluates success from the tau2 benchmark. For this, the user input is simulated with another LLM.
+示例命令:
 
+```bash
+python ingest_policy.py
+agent-cli --rag http://localhost:3000/mcp
+```
 
-## RAG Pipeline & Policy Eval
+## 说明
 
-1. **Ingest policy into Chroma** (run once; requires `airline_policy.pdf` and `GEMINI_API_KEY`):
-   ```bash
-   python ingest_policy.py
-   ```
-   This creates `policy_db/` with chunked, embedded policy.
-
-2. **Run policy eval** (naive vs RAG; computes hallucination rate and reduction):
-   ```bash
-   agent-eval-policy                    # from python/agent after pip install -e .
-   agent-eval-policy --limit 5          # quick check
-   agent-eval-policy --out results.json # save results
-   ```
-
-3. **Use RAG in the agent** (policy QA via `query_policy` tool instead of full policy in prompt):
-   ```bash
-   agent-cli --rag http://localhost:3000/mcp
-   ```
-   Ensure the MCP airline server is running and ingest has been run.
-
-## Development Notes
-
-- All MCP servers share data from the `data/` directory
-- The airline database is loaded from `data/airline/db.json`
-- The policy is in `data/airline/policy.md`
-- Changes to the database through the web UI or MCP tools are in-memory only (not persisted)
+- `.env` 等敏感配置文件不应上传
+- 本仓库用于课程项目与实验
